@@ -1,0 +1,67 @@
+
+        686*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% XBeach parameter settings input file                                     %%%
+%%%                                                                          %%%
+%%% date:     09-Sep-2011 09:45:52                                           %%%
+%%% function: xb_write_params                                                %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Grid parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+depfile   = bed.dep
+posdwn    = 0
+nx        = 3469
+ny        = 0
+alfa      = 0
+vardx     = 1
+xfile     = xgrid.grd
+yfile     = ygrid.grd
+xori      = 0
+yori      = 0
+thetamin  = 260
+thetamax  = 280
+dtheta    = 5
+thetanaut = 1
+useXBeachGSettings = 0
+
+%%% fricción con fondo %%%%%%%%
+bedfriction  = manning
+bedfriccoef  = 0.02
+
+%%% ARCHIVOS POSIDONIA %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+vegetation    = 1
+veggiefile    = vegetation.txt
+veggiemapfile = posidoniabed.txt
+nveg          = 10
+
+%%% Initial conditions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+zs0       = 0
+
+%%% Model time %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tstop     = 1800
+
+%%% Wave boundary condition parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+nonh      = 1
+instat    = jons
+random    = 0
+
+%%% Wave-spectrum boundary condition parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+bcfile    = jonswap.txt
+rt        = 1800
+dtbc      = 2
+
+%%% Output variables %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tstart       = 0
+tintg        = 1
+outputformat = netcdf
+nrugauge     = 1
+0 0
+nglobalvar   = 2
+zs
+H
+        
