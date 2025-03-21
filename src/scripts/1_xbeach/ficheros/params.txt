@@ -10,7 +10,7 @@
 
 depfile   = bed.dep
 posdwn    = 0
-nx        = 3469
+nx        = 4771
 ny        = 0
 alfa      = 0
 vardx     = 1
@@ -33,7 +33,7 @@ bedfriccoef  = 0.02
 vegetation    = 1
 veggiefile    = vegetation.txt
 veggiemapfile = posidoniabed.txt
-nveg          = 10
+nveg          = 14
 
 %%% Initial conditions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

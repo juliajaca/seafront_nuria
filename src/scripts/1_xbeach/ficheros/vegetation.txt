@@ -8,3 +8,7 @@ densidad6.txt
 densidad7.txt
 densidad8.txt
 densidad9.txt
+densidad10.txt
+densidad11.txt
+densidad12.txt
+densidad13.txt

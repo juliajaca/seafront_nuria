@@ -1,5 +1,6 @@
 import numpy as np
 from pathlib import Path
+import pandas as pd
 
 def write_file(file, string):
     f = open(file, "w")
@@ -21,33 +22,29 @@ class Modelo:
     jonswap_file = 'jonswap.txt'
     vegetation_file = 'vegetation.txt'
 
-    def __init__(self,  playa, tiempo_ejecucion, parametro_rt):
+    def __init__(self,  playa, tiempo_ejecucion, parametro_rt, año):
         self.playa = playa
         self.tiempo_ejecucion = tiempo_ejecucion
         self.parametro_rt = parametro_rt
         # self.diccionario_densidades =  diccionario_densidades
-        self.get_diccionario_densidades()
+        self.get_diccionario_densidades(año)
         self.write_bed_file()
         self.write_gridX_file()
         self.write_gridY_file()
         self.write_jonswap_file()
+        self.año= año
         self.densidades = self.write_posidoniabed_file()
         self.write_params_file()
         print('aqui es lo especual')
         self.manage_density_files()
         self.write_vegetation_file()
     
-    def get_diccionario_densidades(self): # 674 - 24.4 * profundidad
-        profundidades = np.arange(0, -20, -0.5)
+    def get_diccionario_densidades(self, año):
         diccionario_densidades = {
-            (inicio, inicio - 0.5): int(round(674 + 24.4 * (inicio - 0.25), 0) )
-            for inicio in profundidades}
-        
-        # diccionario_densidades = {
-        #     (inicio, inicio - 0.5): 644
-        #     for inicio in profundidades}
-        # valores_unicos = {densidad: idx + 1 for idx, densidad in enumerate(diccionario_densidades.values())}
-        # print(valores_unicos)
+            (inicio, inicio - 0.5): self.playa.densidades[año].iloc[i]
+            for i, inicio in enumerate(self.playa.profundidades) 
+        }
+        print(diccionario_densidades)
         self.diccionario_densidades = diccionario_densidades
         
     def write_vegetation_file(self):
@@ -77,13 +74,13 @@ class Modelo:
     def get_planta_string(self, densidad):
         return f'''
 nsec = 1
-ah = 1
-bv = 0.01
+ah = 0.4156 
+bv = 0.0093
 N = {densidad}
 Cd = 0.2
         '''
 
-
+# antes en ah tenia 1 y en bv tenia 0.1, asi que salia mucho menos ru. ah es la altura, bv el diametro, N la densidad
     def write_gridX_file(self):
         xs_string = ' '.join(str(x) for x in range(len(self.playa.bed)))
         write_file(self.folder_path+self.xgrid_file, xs_string)
@@ -105,7 +102,6 @@ Cd = 0.2
         jonswap_string = self.get_jonswap_string()
         write_file(self.folder_path+self.jonswap_file, jonswap_string)
     
-
 
     def write_posidoniabed_file(self):
         posidoniabed_list = np.array([0] * len(self.playa.bed))

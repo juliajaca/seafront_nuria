@@ -1,1 +1,8 @@
 /venv
+*.csv
+*.txt
+*.kml
+*.pyc
+/src/scripts/1_xbeach/ficheros
+/src/scripts/2_espacial/datos
+/src/scripts/1_xbeach/ficheros

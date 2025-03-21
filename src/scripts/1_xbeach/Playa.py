@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 class Playa:
 
@@ -17,9 +18,34 @@ class Playa:
         self.dean = self.calcular_dean()
         self.prof_inicio = prof_inicio
         self.prof_fin = prof_fin
+        self.densidades = self.calcular_densidades()
         self.calcular_bed_berbabeu()
         print(f' el dean es {self.dean}')
         print(f'self bed es {self.bed}')
+    
+    def calcular_densidades(self):
+        datos = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/datos/SST_AR4_timeseries_Balear.dat', delim_whitespace=True, header=None, skiprows=1)
+        df =datos.iloc[:, [0, 1]]
+
+        self.profundidades = np.arange(self.prof_inicio, self.prof_fin, -0.5)
+        densidades = pd.DataFrame({2025: [int(round(674 + 24.4 * (inicio - 0.25), 0) ) for inicio in self.profundidades]})
+        densidades = pd.DataFrame({2025: [327 for inicio in self.profundidades]})#para dejar la densidad fija en 2025
+
+        for año in range(2026, 2100):
+            print(año)
+            valor_modelo = df.loc[df.iloc[:, 0] == año]
+            sst = float(valor_modelo.iloc[0, 1])  # Primera fila, segunda columna
+            # print(sst)
+            d_anterior = densidades.loc[:,año-1]
+            r = d_anterior * 0.05 #por año
+            m_temp =  d_anterior* (0.021 * sst - 0.471)
+            m_frente = 0.07 * d_anterior
+            d_año = d_anterior + r  - m_temp - m_frente
+            densidades[año] = d_año
+            # print(d_año)
+            # print(type(valor_modelo))
+            print('---')
+        return densidades
     
     def calcular_dean(self):
         w = 273* self.d50 **1.1
@@ -30,7 +56,7 @@ class Playa:
     def calcular_bed_berbabeu(self):
         hr = 1.1 * self.h
         print(f'la hr es {hr}')
-        ha = 20 # tiene que llegar a 20 m de profundidad
+        ha = 25 # tiene que llegar a 20 m de profundidad, he puesto 25 ahora porque hay una playa con posidonia a -24
         print(type(self.dean))
         A = 0.15-0.009*self.dean
         C = 0.03+0.03*self.dean

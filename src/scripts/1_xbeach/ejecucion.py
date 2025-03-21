@@ -17,15 +17,15 @@ hmed = 0.6788
 tmed = 5.2827
 h99 = 2
 t99= 10
-inicio_pradera = -1
-fin_pradera = -6
+inicio_pradera = -3
+fin_pradera = -10
 d50 = 0.0005
 # d50 = 0.0005 # 0.5mm/1000 mm m-1
 
 # %%
 playa = Playa(hmed, tmed, h99, t99, d50,  inicio_pradera, fin_pradera)
 # print(*prueba.bed, sep="\n")
-modelo = Modelo(playa, tiempo_ejecucion, parametro_rt)
+modelo = Modelo(playa, tiempo_ejecucion, parametro_rt, 2025)
 
 # %% EJEUCUON XBEACH
 result = subprocess.run([path_xbeach], shell=True, capture_output=True, text=True, cwd= path_ficheros_ejecucion)
@@ -53,10 +53,10 @@ print(f'dean-->{playa.dean} ru-->{playa.zs} h99-->{playa.h99} hmed-->{playa.h}')
 
 # %%
 print('ya he terminado')
-np.savetxt(f"RU{playa.dean}_1.csv", playa.ru)
+np.savetxt(f"RU_densidad_cambiante_{inicio_pradera}_{fin_pradera}.csv", playa.ru)
 
 # %%
 print('ya he terminado')
-with open(f"RU{playa.dean}_1.txt", "w") as f:
+with open(f"RU_densidad_cambiante_{inicio_pradera}_{fin_pradera}.txt", "w") as f:
     f.write(str(playa.zs))
 # %%
