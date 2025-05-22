@@ -21,7 +21,15 @@ inicio_pradera = -3
 fin_pradera = -10
 d50 = 0.0005
 # d50 = 0.0005 # 0.5mm/1000 mm m-1
-
+# prueba almadrava
+nombre= 'almadrava'
+hmed = 0.3854
+tmed = 4.9709
+h99 = 2.0220
+t99= 10.8696
+inicio_pradera = -3.380359
+fin_pradera = -24.12477
+d50 = 0.314/1000
 # %%
 playa = Playa(hmed, tmed, h99, t99, d50,  inicio_pradera, fin_pradera)
 # print(*prueba.bed, sep="\n")
@@ -42,7 +50,7 @@ print(ds)
 # '''
 
 playa.ru = ds.point_zs.values
-indice =  [ n for n,i in enumerate(playa.ru) if i>0.01 ][0] + 5*playa.t99
+indice = int( [ n for n,i in enumerate(playa.ru) if i>0.01 ][0] + 5*playa.t99)
 playa.zs = np.percentile(playa.ru[indice:],98)
 print('los rus son')
 valores = (ds.point_zs.values[indice:])
@@ -53,10 +61,10 @@ print(f'dean-->{playa.dean} ru-->{playa.zs} h99-->{playa.h99} hmed-->{playa.h}')
 
 # %%
 print('ya he terminado')
-np.savetxt(f"RU_densidad_cambiante_{inicio_pradera}_{fin_pradera}.csv", playa.ru)
+np.savetxt(f"RU_densidad_no_cambiante_{inicio_pradera}_{fin_pradera}.csv", playa.ru)
 
 # %%
 print('ya he terminado')
-with open(f"RU_densidad_cambiante_{inicio_pradera}_{fin_pradera}.txt", "w") as f:
+with open(f"RU_densidad_no_cambiante_{inicio_pradera}_{fin_pradera}.txt", "w") as f:
     f.write(str(playa.zs))
 # %%

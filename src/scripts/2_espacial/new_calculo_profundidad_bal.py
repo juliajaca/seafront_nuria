@@ -1,10 +1,17 @@
 # %%
+import math
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import matplotlib.colors as mcolors
+import geopandas as gpd
+import numpy as np
 import geopandas as gpd
 from geopy.distance import geodesic
 import matplotlib.pyplot as plt
 import pandas as pd
 from shapely.geometry import Point
 import numpy as np
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 # %matplotlib widget
 import matplotlib.pyplot as plt
@@ -12,6 +19,7 @@ from shapely.geometry import Point, LineString
 from scipy.interpolate import griddata
 import math
 import matplotlib.ticker as mticker
+from matplotlib.patches import Patch
 # ------- 
 # %%
 # -------
@@ -120,55 +128,76 @@ plt.show()
 contador = 0
 lista_puntos  = gpd.GeoDataFrame(columns=['geometry', 'profundidad'], geometry='geometry', crs= posi_bal.crs) 
 
-for parche in posi_bal.geometry[6094:6095]:
+for fila in range(len(posi_bal[0:1])):
+    # fila = 798
+    parche = posi_bal.iloc[fila].geometry
+    print(parche)
     filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.05))]# original
-    filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.0005))]
+    # filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.0005))]
 
+    fig, ax = plt.subplots(figsize=(2, 2))
+    gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax)
+    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
+    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
+    plt.title('mi parche')
+    plt.show()
 
-    # fig, ax = plt.subplots(figsize=(2, 2))
-    # gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax)
-    # ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
-    # ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
-    # plt.title('mi parche')
-    # plt.show()
+    fig, ax = plt.subplots(figsize=(2, 2))
+    gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red", zorder=1)
+    filtered_gdf.plot(ax= ax,aspect=1, column= 'z', linewidth=0.5, legend=True, )
+    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
+    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
+    plt.title('lineas de batimetria que intersectan con mi parche')
+    plt.show()
 
-    # fig, ax = plt.subplots(figsize=(2, 2))
-    # gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red")
-    # filtered_gdf.plot(ax= ax,aspect=1, column= 'z', linewidth=0.5, legend=True)
-    # ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
-    # ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
-    # plt.title('lineas de batimetria que intersectan con mi parche')
-    # plt.show()
-
-    # fig, ax = plt.subplots(figsize=(10, 10))
-    # filtered_gdf.plot(ax= ax,cmap= 'viridis', legend = True,linewidth=5, markersize = 5, column = 'z')
-    # gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red",linewidth=4000, markersize = 500)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red",linewidth=4000, markersize = 500, zorder=10)
+    filtered_gdf.plot(ax= ax,cmap= 'viridis', legend = True,linewidth=5, markersize = 5, column = 'z', zorder=1)
     # gpd.GeoDataFrame(geometry=[parche.centroid], crs = posi_bal.crs).plot(ax= ax, color = "black", markersize = 100)
-    # plt.title('mi parche con la batimetria')
-    # plt.show()  # COINCIDEN
- 
+    plt.title('Parche de ejemplo')
+    plt.show()  # COINCIDEN
+
+    colores = { 0: '#fde725', -10: '#5ec962',-20: '#21918c',-30: '#3b528b', -40: '#440154' }
+    # Crear una nueva columna con el color asignado a cada valor de 'z'
+    filtered_gdf['color'] = filtered_gdf['z'].map(colores)
+    # Crear la figura
+    fig, ax = plt.subplots(figsize=(10, 10))
+    gpd.GeoDataFrame(geometry=[parche], crs=posi_bal.crs).plot(
+        ax=ax, color="red", linewidth=4000, markersize=500, zorder=10)
+    filtered_gdf.plot(ax=ax, color=filtered_gdf['color'], linewidth=5, markersize=5, zorder=1)
+    leyenda = [Patch(color=col, label=str(val)) for val, col in colores.items()]
+    ax.legend(handles=leyenda, title='Profundidad (m)')
+    plt.title('Parche de ejemplo')
+    plt.show()
+
     # 2️⃣ Crear una malla de puntos dentro del polígono
     minx, miny, maxx, maxy = parche.bounds  # Límites del polígono
-    # PUNTOS CADA 10 METROS
-    metros = 10
+   # PUNTOS CADA 50 METROS
+    metros = 50
     dist_x = geodesic((minx, 0), (maxx, 0)).meters
     dist_y = geodesic((0, miny), (0, maxy)).meters
-    # print(dist_x, dist_y)
+    print(dist_x, dist_y)
 
     # grid_x, grid_y = np.meshgrid(
-    #     np.linspace(minx, maxx, round(dist_x/metros)),
-    #     np.linspace(miny, maxy, round(dist_y/metros))   
+    #     np.linspace(minx, maxx, round(dist_x/metros)),  # 50 puntos en X
+    #     np.linspace(miny, maxy, round(dist_y/metros))   # 50 puntos en Y
     # )
+    # n_puntos = 50
+    # if dist_x <50 or dist_y < 50:
+    #     n_puntos = 25
+    puntos_x = min(50, math.ceil(dist_x / 10))
+    puntos_y = min(50, math.ceil(dist_y / 10))
+
     grid_x, grid_y = np.meshgrid(
-        np.linspace(minx, maxx, 50),
-        np.linspace(miny, maxy, 50)   
+        np.linspace(minx, maxx, puntos_x),
+        np.linspace(miny, maxy, puntos_y)   
     )
     # El area sera el numero de puntos por 10
     if len(grid_x)==0 or len(grid_y)==0:
         grid_x = np.array ([parche.centroid.x])
         grid_y = np.array([parche.centroid.y])
     # print(grid_x, grid_y)
-
+    print('voy a hacer el grid')
     grid_points = np.array([Point(x, y) for x, y in zip(grid_x.ravel(), grid_y.ravel())])  # malla a  lista de puntos
     grid_points = np.array([p for p in grid_points if parche.contains(p)])  # Filtrar puntos dentro
     xy_array = np.array([(p.x, p.y) for p in grid_points]) #de lista de ppuntos a lista x,y
@@ -202,16 +231,22 @@ for parche in posi_bal.geometry[6094:6095]:
             points.append(Point(xy_array[i, 0], xy_array[i, 1]))
 
     # Construir un DataFrame y C onvertir a GeoDataFrame
-    df = pd.DataFrame({"geometry": points, "profundidad": temp_flat, 'parche': contador,})
+    df = pd.DataFrame({"geometry": points,
+                       "profundidad": temp_flat, 
+                       'parche': contador,
+                       'm2_punto':posi_bal.iloc[fila].Area_ha/len(points)*10000,
+                       'm2_total': posi_bal.iloc[fila].Area_ha*10000,
+                       'zona':'baleares'})
     gdf = gpd.GeoDataFrame(df, geometry="geometry", crs= posidonia.crs)
     # print(gdf)
 
     # PLOT TODOS LOS PUNTOS INTERPOLADOS
-    # gdf.plot(column='profundidad', legend = True)
-    # plt.title(f'Todos los puntos')
-    # plt.show() 
+    gdf.plot(column='profundidad', legend = True)
+    plt.title(f'Todos los puntos')
+    plt.show() 
     
     fig, ax = plt.subplots(figsize=(10, 10))
+    gdf.iloc[[0]].plot(ax=ax, color='red', markersize=100, zorder=10)
     gdf.plot(column='profundidad', legend=True, ax=ax)
     plt.title(f'profundidad {contador}')
     ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))

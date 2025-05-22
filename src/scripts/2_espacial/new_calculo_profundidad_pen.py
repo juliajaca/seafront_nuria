@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString, MultiLineString
 from scipy.interpolate import griddata
 from geopy.distance import geodesic
-
+import math
 # ------- 
 # VERIFICAR LAS LINEAS DE COSTA
 # --------
@@ -27,7 +27,7 @@ costa_baja= costa_baja[['provincia', 'ELEVATION', 'geometry']]
 # POSIDONIA
 # -------
 posidonia = gpd.read_file("C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/datos/areas_praderas_PeninsulaBaleares/posidonia_filtrada/output_filtrado.shp")
-posi_pen =  posidonia.loc[~posidonia['Prov_Isla'].isin(['Mallorca', 'Menorca', 'Ibiza', 'Islas Chafarinas', 'Barcelona', 'Tarragona', 'Girona'])]
+posi_pen =  posidonia.loc[~posidonia['Prov_Isla'].isin(['Mallorca', 'Menorca', 'Ibiza', 'Islas Chafarinas', 'Barcelona', 'Tarragona', 'Girona'])].reset_index(drop=True)
 # %%
 posidonia.plot()
 # # %% hecho aparte en un fichero que cargo despues porque tardaba mucho cada vez
@@ -72,30 +72,54 @@ posidonia.plot()
 
 # %%
 batimetria2 = gpd.read_file('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/datos/batimetria_med_interpolada/mi_shapefile.shp')
+playas = pd.read_csv("C:/Users/Julia/Documents/VSCODE/src/carpeta_ignorada/9_paper/med_con_ss_con_ru_con_xflood.csv", sep=";")
+# Convertir la columna 'geometry' en objetos geométricos de Shapely
+playas = playas.dropna(subset=["geometry"])
+playas["geometry"] = playas["geometry"].astype(str)
+playas["geometry"] = gpd.GeoSeries.from_wkt(playas["geometry"])
+playas = gpd.GeoDataFrame(playas, geometry="geometry")
+
+# %%
+fig, ax = plt.subplots(figsize=(10, 10))
+# batimetria2.plot(ax= ax, color = "black", linewidth=0.5)
+posi_pen[200:300].plot(ax= ax, color = "green", linewidth=50, markersize= 50)
+# Agregar el índice de cada polígono en su posición
+for idx, row in posi_pen[200:300].iterrows():
+    centroid = row.geometry.centroid  # Obtener el centro del polígono
+    ax.text(centroid.x, centroid.y, str(idx), fontsize=12, color='red', ha='center', va='center')
+playas.plot(ax= ax, color='black' )
+for idx, row in playas[:].iterrows():
+    centroid = row.geometry.centroid  # Obtener el centro del polígono
+    ax.text(centroid.x, centroid.y, row['nombre'], fontsize=12, color='red', ha='center', va='center')
+plt.show()
+# gpd.GeoDataFrame({'geometry': [parche]}).plot(ax= ax, color = "red")
+plt.show()  # COINCIDEN
+
 # %%
 contador = 0
 lista_puntos  = gpd.GeoDataFrame(columns=[ 'geometry', 'profundidad'], geometry='geometry', crs= posi_pen.crs) 
 
-for parche in posi_pen.geometry[148:149]:
+for fila in range(len(posi_pen[0:])):
+    parche = posi_pen.iloc[fila].geometry
         # gpd.GeoDataFrame(geometry=[parche], crs = posi_catainsula.crs).plot()
-    filtered_gdf = batimetria2[batimetria2.geometry.intersects(parche.buffer(0.1))] #esta es la que va bien
-    # filtered_gdf = bati_cat[bati_cat.geometry.intersects(parche.buffer(0.001))] #pruebas para pintar mapas
+    # filtered_gdf = batimetria2[batimetria2.geometry.intersects(parche.buffer(0.0001))] #esta es la que va bien
+    filtered_gdf = batimetria2[batimetria2.geometry.intersects(parche.buffer(0.005))] #pruebas para pintar mapas
 
     # filtered_gdf.plot(aspect=1, column= 'ELEVATION', legend= True)
     # plt.title('profundidad')
     # plt.show()
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    filtered_gdf.plot(ax= ax,cmap= 'viridis', legend = True,linewidth=5, markersize = 5, column = 'ELEVATION')
-    gpd.GeoDataFrame(geometry=[parche], crs = posi_pen.crs).plot(ax= ax, color = "red",linewidth=4000, markersize = 500)
-    gpd.GeoDataFrame(geometry=[parche.centroid], crs = posi_pen.crs).plot(ax= ax, color = "black", markersize = 100)
-    plt.title('mi parche con la batimetria')
-    plt.show()  # COINCIDEN
+    # fig, ax = plt.subplots(figsize=(10, 10))
+    # filtered_gdf.plot(ax= ax,cmap= 'viridis', legend = True,linewidth=5, markersize = 5, column = 'ELEVATION',zorder=0)
+    # gpd.GeoDataFrame(geometry=[parche], crs = posi_pen.crs).plot(ax= ax, color = "red",linewidth=4000, markersize = 500, zorder= 1)
+    # gpd.GeoDataFrame(geometry=[parche.centroid], crs = posi_pen.crs).plot(ax= ax, color = "black", markersize = 100, zorder=2)
+    # plt.title('mi parche con la batimetria')
+    # plt.show()  # COINCIDEN
     # 3️ Obtener puntos y profundidades de los LineStrings
     line_points = []
     depths = []
 
-    for _, row in filtered_gdf.iterrows():
+    for _, row in filtered_gdf[0:1].iterrows():
             line = row.geometry
             depth = row['ELEVATION']
             for coord in line.coords:
@@ -114,9 +138,13 @@ for parche in posi_pen.geometry[148:149]:
     dist_y = geodesic((0, miny), (0, maxy)).meters
     # print(dist_x, dist_y)
 
+    puntos_x = min(50, math.ceil(dist_x / 10))
+    puntos_y = min(50, math.ceil(dist_y / 10))
+    print(f'hay {puntos_x} puntos en x y {puntos_y} puntos en y')
+
     grid_x, grid_y = np.meshgrid(
-        np.linspace(minx, maxx, round(dist_x/metros)),  # 50 puntos en X
-        np.linspace(miny, maxy, round(dist_y/metros))   # 50 puntos en Y
+        np.linspace(minx, maxx, puntos_x),
+        np.linspace(miny, maxy, puntos_y)   
     )
     # El area sera el numero de puntos por 10
     if len(grid_x)==0 or len(grid_y)==0:
@@ -125,8 +153,8 @@ for parche in posi_pen.geometry[148:149]:
     # print(grid_x, grid_y)
 
     grid_points = np.array([Point(x, y) for x, y in zip(grid_x.ravel(), grid_y.ravel())])  # malla a  lista de puntos
-    grid_points = np.array([p for p in grid_points if parche.contains(p)])  # Filtrar puntos dentro
-    xy_array = np.array([(p.x, p.y) for p in grid_points]) #de lista de ppuntos a lista x,y
+    grid_points2 = np.array([p for p in grid_points if parche.contains(p)])  # Filtrar puntos dentro
+    xy_array = np.array([(p.x, p.y) for p in grid_points2]) #de lista de ppuntos a lista x,y
 
     if len(xy_array)==0:
         xy_array = np.array([parche.centroid.x, parche.centroid.y])
@@ -135,6 +163,7 @@ for parche in posi_pen.geometry[148:149]:
     # print(line_points) #de lista de puntos a lista xy
     
     # 3 Interpolación de la profundidad en la malla
+    print('camos a interpolar')
     grid_depths = griddata(line_points, depths, xy_array, method='linear')
     # print('las profs son')
     # print(grid_depths)
@@ -156,7 +185,12 @@ for parche in posi_pen.geometry[148:149]:
             points.append(Point(xy_array[i, 0], xy_array[i, 1]))
 
     # Construir un DataFrame y C onvertir a GeoDataFrame
-    df = pd.DataFrame({"geometry": points, "profundidad": temp_flat, 'parche': contador,})
+    df = pd.DataFrame({"geometry": points,
+                    "profundidad": temp_flat,
+                    'parche': contador,
+                    'm2_punto':posi_pen.iloc[fila].Area_ha/len(points)*10000,
+                    'm2_total': posi_pen.iloc[fila].Area_ha*10000,
+                    'zona':'peninsula'})
     gdf = gpd.GeoDataFrame(df, geometry="geometry", crs= posi_pen.crs)
     # print(gdf)
 
@@ -165,12 +199,13 @@ for parche in posi_pen.geometry[148:149]:
     # plt.title(f'Todos los puntos')
     # plt.show() 
     
-    fig, ax = plt.subplots(figsize=(2, 2))
-    gdf.plot(column='profundidad', legend=True, ax=ax)
-    plt.title(f'profundidad {contador}')
-    # ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
-    # ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))    
-    plt.show()
+    # fig, ax = plt.subplots(figsize=(2, 2))
+    # gpd.GeoDataFrame(geometry=[parche], crs=gdf.crs).plot(ax=ax, color="red", linewidth=2, markersize=100)
+    # gdf.plot(column='profundidad', legend=True, ax=ax)
+    # plt.title(f'profundidad {contador}')
+    # # ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
+    # # ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))    
+    # plt.show()
 
     contador = contador+1
     # print(lista_puntos)

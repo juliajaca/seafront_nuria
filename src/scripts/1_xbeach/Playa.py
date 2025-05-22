@@ -29,7 +29,7 @@ class Playa:
 
         self.profundidades = np.arange(self.prof_inicio, self.prof_fin, -0.5)
         densidades = pd.DataFrame({2025: [int(round(674 + 24.4 * (inicio - 0.25), 0) ) for inicio in self.profundidades]})
-        densidades = pd.DataFrame({2025: [327 for inicio in self.profundidades]})#para dejar la densidad fija en 2025
+        # densidades = pd.DataFrame({2025: [327 for inicio in self.profundidades]})#para dejar la densidad fija en 2025
 
         for año in range(2026, 2100):
             print(año)

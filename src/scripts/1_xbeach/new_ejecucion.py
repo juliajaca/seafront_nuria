@@ -30,23 +30,31 @@ hmed = 0.3854
 tmed = 4.9709
 h99 = 2.0220
 t99= 10.8696
-inicio_pradera = -3.380359
+inicio_pradera = -1
 fin_pradera = -24.12477
-d50 = 0.314/1000
+d50 = 0.314/1000 #tardo 8 horas
 
-# Playa parazuelos
-nombre = 'parazuelo'
-hmed = 0.4177
-tmed = 5.0876
-h99 = 1.9308 
-t99=  10.8696
-inicio_pradera = -3
-fin_pradera = -24
-d50 = 0.97/1000
+# # Playa parazuelos
+# nombre = 'parazuelo'
+# hmed = 0.4177
+# tmed = 5.0876
+# h99 = 1.9308 
+# t99=  10.8696
+# inicio_pradera = -3
+# fin_pradera = -24
+# d50 = 0.97/1000
 
+nombre= 'almadrava_dean_alto'
+hmed = 0.3854
+tmed = 4.9709
+h99 = 2.0220
+t99= 10.8696
+inicio_pradera = -1
+fin_pradera = -24.12477
+d50 = 0.97/1000 # tardo  horas
 
 playa = Playa(hmed, tmed, h99, t99, d50, round(inicio_pradera, 0), round(fin_pradera,0))
-# modelo = Modelo(playa, tiempo_ejecucion, parametro_rt, año)
+modelo = Modelo(playa, tiempo_ejecucion, parametro_rt, año)
 # %%
 # PLOT densidad vs profundidad
 fig, ax = plt.subplots(figsize=(12, 6))
@@ -84,7 +92,7 @@ plt.tight_layout()
 plt.show()
 
 # %%
-for año in range(2025,2099):
+for año in range(2025,2099,):
     print('--------------------------------------------------------------')
     print(f'el año es {año}')
     # print(*prueba.bed, sep="\n")
@@ -113,11 +121,10 @@ for año in range(2025,2099):
         
     print(f'dean-->{playa.dean} ru-->{playa.zs} h99-->{playa.h99} hmed-->{playa.h}')
 
+    print('ya he terminado')
+    np.savetxt(f"RU{nombre}_{año}_{inicio_pradera}_{fin_pradera}_{d50}.csv", playa.ru)
 
     print('ya he terminado')
-    np.savetxt(f"RU{nombre}_{año}.csv", playa.ru)
-
-    print('ya he terminado')
-    with open(f"RU{nombre}_{año}.txt", "w") as f:
+    with open(f"RU{nombre}_{año}_{inicio_pradera}_{fin_pradera}_{d50}.txt", "w") as f:
         f.write(str(playa.zs))
 #  %%
