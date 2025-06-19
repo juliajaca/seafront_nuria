@@ -1,25 +1,24 @@
 # %%
-import math
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
-import matplotlib.colors as mcolors
-import geopandas as gpd
-import numpy as np
 import geopandas as gpd
 from geopy.distance import geodesic
+import fiona
+fiona.drvsupport.supported_drivers['LIBKML'] = 'rw'
 import matplotlib.pyplot as plt
 import pandas as pd
 from shapely.geometry import Point
 import numpy as np
-import matplotlib.cm as cm
+import matplotlib
+import matplotlib as mpl
+from netCDF4 import Dataset
+import numpy as np
 import matplotlib.pyplot as plt
-# %matplotlib widget
-import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point
+from shapely.geometry import LineString
 from scipy.interpolate import griddata
+import zipfile
+import os
 import math
 import matplotlib.ticker as mticker
-from matplotlib.patches import Patch
 # ------- 
 # %%
 # -------
@@ -27,7 +26,7 @@ from matplotlib.patches import Patch
 # -------
 posidonia = gpd.read_file("C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/datos/areas_praderas_PeninsulaBaleares/posidonia_filtrada/output_filtrado.shp")
 islas = ['Mallorca', 'Menorca', 'Ibiza', ]
-posi_bal = posidonia.loc[posidonia['Prov_Isla'].isin(islas)].reset_index(drop=True)
+posi_bal = posidonia.loc[posidonia['Prov_Isla'].isin(islas)]
 # %%
 posi_bal.plot()
 
@@ -88,7 +87,7 @@ def get_geodataframe_batimetria(inputfile='C:/Users/Julia/Documents/VSCODE/src/_
     # print(df['z'])
     # for z in df['z']:
     #     print(z)
-    df = df[df['z'] <= 40]
+    df = df[df['z'] <= 30]
     if (df['z'] >= 0).all():
         df['z'] *= -1
     # print(df)
@@ -98,7 +97,7 @@ def get_geodataframe_batimetria(inputfile='C:/Users/Julia/Documents/VSCODE/src/_
     gdf = gdf.to_crs(gdf_points.crs)
     print(gdf.crs)
     print(gdf)
-    # gdf.plot(column='z') #quito el plot que tarda mucho
+    gdf.plot(column='z')
     return gdf
 
 mallorca = get_geodataframe_batimetria()
@@ -111,29 +110,31 @@ formentera = get_geodataframe_batimetria('C:/Users/Julia/Documents/VSCODE/src/_f
 bati_bal = pd.concat([mallorca,menorca, ibiza, formentera,  gdf_points], ignore_index=True)
 bati_bal.plot(column = 'z')
 
+
 # %%
-# PLOT PARA VER DONDE ESTAN
-fig, ax = plt.subplots(figsize=(10, 10))
-bati_bal.plot(ax= ax, color = "black", linewidth=0.00001)
-posi_bal[6094:6095].plot(ax= ax, color="green", edgecolor="black", linewidth=0.1, alpha=0.5)
-# Agregar el índice de cada polígono en su posición
-for idx, row in posi_bal[6094:6095].iterrows():
-    centroid = row.geometry.centroid  # Obtener el centro del polígono
-    ax.text(centroid.x, centroid.y, str(idx), fontsize=12, color='red', ha='center', va='center')
-plt.show()
-# gpd.GeoDataFrame({'geometry': [parche]}).plot(ax= ax, color = "red")
-# COINCIDEN
+# for parche in posidonia.geometry
+def calcular_nx_ny_recursivo(minx, miny, maxx, maxy, latitud, distancia):
+    dx= distancia /(60*1850*math.cos(latitud*math.pi/180))
+    nx = round((maxx-minx)/dx)
+    dy = distancia /(60*1850)
+    ny = round((maxy-miny)/dy)
+    print(f"Distancia: {distancia}, nx: {nx}, ny: {ny}")
+
+    # Verificar si nx y ny cumplen con el mínimo de 25
+    if nx >= 25 and ny >= 25:
+        return nx, ny, distancia
+    elif distancia > 1:  # Evitar que la distancia llegue a valores no realistas
+        return calcular_nx_ny_recursivo(minx, miny, maxx, maxy, latitud, distancia * 0.5)
+    else:
+        print("Distancia mínima alcanzada, pero nx o ny no llegan a 25.")
+        return nx, ny, distancia
 
 # %%
 contador = 0
-lista_puntos  = gpd.GeoDataFrame(columns=['geometry', 'profundidad'], geometry='geometry', crs= posi_bal.crs) 
+lista_puntos  = gpd.GeoDataFrame(columns=[ 'geometry', 'profundidad'], geometry='geometry', crs= posi_bal.crs) 
 
-for fila in range(len(posi_bal[0:1])):
-    # fila = 798
-    parche = posi_bal.iloc[fila].geometry
-    print(parche)
-    filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.05))]# original
-    # filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.0005))]
+for parche in posi_bal.geometry[4:100]:
+    filtered_gdf = bati_bal[bati_bal.geometry.intersects(parche.buffer(0.05))]
 
     fig, ax = plt.subplots(figsize=(2, 2))
     gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax)
@@ -142,83 +143,79 @@ for fila in range(len(posi_bal[0:1])):
     plt.title('mi parche')
     plt.show()
 
-    fig, ax = plt.subplots(figsize=(2, 2))
-    gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red", zorder=1)
-    filtered_gdf.plot(ax= ax,aspect=1, column= 'z', linewidth=0.5, legend=True, )
-    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
-    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
-    plt.title('lineas de batimetria que intersectan con mi parche')
-    plt.show()
+    # fig, ax = plt.subplots(figsize=(2, 2))
+    # gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red")
+    # filtered_gdf.plot(ax= ax,aspect=1, column= 'z', linewidth=0.5, legend=True)
+    # ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
+    # ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f')) 
+    # plt.title('lineas de batimetria que intersectan con mi parche')
+    # plt.show()
 
-    fig, ax = plt.subplots(figsize=(10, 10))
-    gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red",linewidth=4000, markersize = 500, zorder=10)
-    filtered_gdf.plot(ax= ax,cmap= 'viridis', legend = True,linewidth=5, markersize = 5, column = 'z', zorder=1)
-    # gpd.GeoDataFrame(geometry=[parche.centroid], crs = posi_bal.crs).plot(ax= ax, color = "black", markersize = 100)
-    plt.title('Parche de ejemplo')
-    plt.show()  # COINCIDEN
-
-    colores = { 0: '#fde725', -10: '#5ec962',-20: '#21918c',-30: '#3b528b', -40: '#440154' }
-    # Crear una nueva columna con el color asignado a cada valor de 'z'
-    filtered_gdf['color'] = filtered_gdf['z'].map(colores)
-    # Crear la figura
-    fig, ax = plt.subplots(figsize=(10, 10))
-    gpd.GeoDataFrame(geometry=[parche], crs=posi_bal.crs).plot(
-        ax=ax, color="red", linewidth=4000, markersize=500, zorder=10)
-    filtered_gdf.plot(ax=ax, color=filtered_gdf['color'], linewidth=5, markersize=5, zorder=1)
-    leyenda = [Patch(color=col, label=str(val)) for val, col in colores.items()]
-    ax.legend(handles=leyenda, title='Profundidad (m)')
-    plt.title('Parche de ejemplo')
-    plt.show()
+    # fig, ax = plt.subplots(figsize=(10, 10))
+    # filtered_gdf.plot(ax= ax, color = "grey",linewidth=0.5, markersize = 0.5)
+    # gpd.GeoDataFrame(geometry=[parche], crs = posi_bal.crs).plot(ax= ax, color = "red",linewidth=200)
+    # plt.title('mi parche con la batimetria')
+    # plt.show()  # COINCIDEN
 
     # 2️⃣ Crear una malla de puntos dentro del polígono
     minx, miny, maxx, maxy = parche.bounds  # Límites del polígono
-   # PUNTOS CADA 50 METROS
-    metros = 50
+    # calcular
+    # 1   OPCION PUNTOS SEGUN EL TAMAÑOA
+    # tupla = calcular_nx_ny_recursivo(minx, miny, maxx, maxy, parche.centroid.y, 50)
+
+    # grid_x, grid_y = np.meshgrid(
+    #     np.linspace(minx, maxx, tupla[0]),  # x puntos en X
+    #     np.linspace(miny, maxy, tupla[1])   # y puntos en Y
+    # )
+    # 2 OPCION 50 pUNTOS
+    # grid_x, grid_y = np.meshgrid(
+    #     np.linspace(minx, maxx, 50),  # 50 puntos en X
+    #     np.linspace(miny, maxy, 50)   # 50 puntos en Y
+    # )
+
+    # 3  OPCION PUNTOS CADA 10 METROS
+    metros = 10
     dist_x = geodesic((minx, 0), (maxx, 0)).meters
     dist_y = geodesic((0, miny), (0, maxy)).meters
     print(dist_x, dist_y)
 
-    # grid_x, grid_y = np.meshgrid(
-    #     np.linspace(minx, maxx, round(dist_x/metros)),  # 50 puntos en X
-    #     np.linspace(miny, maxy, round(dist_y/metros))   # 50 puntos en Y
-    # )
-    # n_puntos = 50
-    # if dist_x <50 or dist_y < 50:
-    #     n_puntos = 25
-    puntos_x = min(50, math.ceil(dist_x / 10))
-    puntos_y = min(50, math.ceil(dist_y / 10))
-
     grid_x, grid_y = np.meshgrid(
-        np.linspace(minx, maxx, puntos_x),
-        np.linspace(miny, maxy, puntos_y)   
+        np.linspace(minx, maxx, round(dist_x/metros)),  # 50 puntos en X
+        np.linspace(miny, maxy, round(dist_y/metros))   # 50 puntos en Y
     )
     # El area sera el numero de puntos por 10
     if len(grid_x)==0 or len(grid_y)==0:
         grid_x = np.array ([parche.centroid.x])
         grid_y = np.array([parche.centroid.y])
     # print(grid_x, grid_y)
-    print('voy a hacer el grid')
-    grid_points = np.array([Point(x, y) for x, y in zip(grid_x.ravel(), grid_y.ravel())])  # malla a  lista de puntos
+
+
+    # Convertimos la malla en una lista de puntos
+    grid_points = np.array([Point(x, y) for x, y in zip(grid_x.ravel(), grid_y.ravel())])
     grid_points = np.array([p for p in grid_points if parche.contains(p)])  # Filtrar puntos dentro
-    xy_array = np.array([(p.x, p.y) for p in grid_points]) #de lista de ppuntos a lista x,y
+    xy_array = np.array([(p.x, p.y) for p in grid_points])
 
     if len(xy_array)==0:
         xy_array = np.array([parche.centroid.x, parche.centroid.y])
 
     line_points = np.array([(point.x, point.y) for point in filtered_gdf.geometry])
-    # print(line_points) #de lista de puntos a lista xy
+    print(line_points)
+    # line_points = np.array([(point.x, point.y) for point in bati_bal.geometry])
     
     # 3 Interpolación de la profundidad en la malla
-    print('voy a interpolar')
     grid_depths = griddata(line_points, filtered_gdf['z'], xy_array, method='linear')
-    # print('las profs son')
-    # print(grid_depths)
+    # grid_depths = griddata(line_points, bati_bal['z'], (grid_x, grid_y), method='linear')
+    print('las profs son')
+    print(grid_depths)
 
     #  HAcer un dataframe
-    # Aplanar las matrices en arrays 1D
+    # # Aplanar las matrices en arrays 1D
+    # x_flat = grid_x.ravel()
+    # y_flat = grid_y.ravel()
     temp_flat = grid_depths.ravel()
 
     # Crear lista de objetos Point
+    # puntos = [Point(x, y) for x, y in zip(x_flat, y_flat)]
     points = []
     # Si el array es 1D (un solo conjunto de coordenadas)
     if xy_array.ndim == 1:
@@ -230,34 +227,39 @@ for fila in range(len(posi_bal[0:1])):
         for i in range(xy_array.shape[0]):
             points.append(Point(xy_array[i, 0], xy_array[i, 1]))
 
-    # Construir un DataFrame y C onvertir a GeoDataFrame
-    df = pd.DataFrame({"geometry": points,
-                       "profundidad": temp_flat, 
-                       'parche': contador,
-                       'm2_punto':posi_bal.iloc[fila].Area_ha/len(points)*10000,
-                       'm2_total': posi_bal.iloc[fila].Area_ha*10000,
-                       'zona':'baleares'})
-    gdf = gpd.GeoDataFrame(df, geometry="geometry", crs= posidonia.crs)
-    # print(gdf)
+    # Construir un DataFrame yC onvertir a GeoDataFrame
+    df = pd.DataFrame({"geometry": points, "profundidad": temp_flat, 'parche': contador,})
+    gdf = gpd.GeoDataFrame(df, geometry="geometry" ,crs= posidonia.crs)
 
+    # print(gdf)
     # PLOT TODOS LOS PUNTOS INTERPOLADOS
     gdf.plot(column='profundidad', legend = True)
     plt.title(f'Todos los puntos')
     plt.show() 
     
-    fig, ax = plt.subplots(figsize=(10, 10))
-    gdf.iloc[[0]].plot(ax=ax, color='red', markersize=100, zorder=10)
-    gdf.plot(column='profundidad', legend=True, ax=ax)
+    # buscar los que caben en el polygono
+    # gdf_filtrado = gdf[gdf.geometry.within(parche)]
+    # if len(gdf_filtrado) == 0:
+    #     gdf_filtrado= gdf
+    # print(gdf_filtrado)
+    gdf_filtrado = gdf
+
+    lista_puntos = pd.concat([lista_puntos, gdf_filtrado], ignore_index=True)
+
+    contador = contador+1
+    
+    # buscar los nulos
+    nulos = gdf[gdf.geometry.isnull()]  # Filtra las filas con geometría nula
+    # print(len(nulos))
+
+    fig, ax = plt.subplots(figsize=(2, 2))
+    gdf_filtrado.plot(column='profundidad', legend=True, ax=ax)
     plt.title(f'profundidad {contador}')
     ax.xaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))
     ax.yaxis.set_major_formatter(mticker.FormatStrFormatter('%.4f'))    
     plt.show()
 
-    contador = contador+1
-    lista_puntos = pd.concat([lista_puntos, gdf], ignore_index=True)
-
     print(f'--{contador}-----------------')
-    
 print('FIN') 
 print(lista_puntos) 
 # %%

@@ -16,9 +16,15 @@ densidades = gpd.GeoDataFrame(densidades, geometry="geometry")
 
 captura = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_secuestro_carbono.csv')
 
-emisiones_hojas = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_emisiones_hojas_co2_densidad.csv')
+captura_d = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_secuestro_carbono_densidad.csv')
 
-emisiones_stock= pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_emisiones_stock_co2.csv')
+emisiones_hojas = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_emisiones_hojas_carbono.csv')
+
+emisiones_hojas_d = pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_emisiones_hojas_carbono_densidad.csv')
+
+emisiones_stock= pd.read_csv('C:/Users/Julia/Documents/VSCODE_SEAFRONT_NURIA/src/scripts/2_espacial/_emisiones_stock_carbono.csv')
+
+
 
 
 # %%
@@ -120,6 +126,13 @@ for j, (df, ax) in enumerate(zip(dfs, axs)):
     ax.set_title(titulos[j])
     ax.set_ylabel(labels[j])
     ax.grid(True) 
+    #
+    if j == 1:
+        valores = captura_d.loc[0, años].astype(float).values
+        ax.plot(años, valores, label='Captura de carbono densidad', color='gold')
+    elif j == 2:
+        valores = emisiones_hojas_d.loc[0, años].astype(float).values
+        ax.plot(años, valores, label='Emisión hojas densidad', color='darkblue')
     ax.legend()
 ticks_cada_5 = años[::5]
 axs[-1].set_xticks(ticks_cada_5)
@@ -143,10 +156,15 @@ captura_0 = captura[(captura['parche'] == 0.0) & (captura['zona'] == 'baleares')
 emisiones_hojas_0 = emisiones_hojas[(emisiones_hojas['parche'] == 0.0) & (emisiones_hojas['zona'] == 'baleares')]
 emisiones_stock_0 = emisiones_stock[(emisiones_stock['parche'] == 0.0) & (emisiones_stock['zona'] == 'baleares')]
 
+emisiones_hojas_0_d = emisiones_hojas_d[(emisiones_hojas_d['parche'] == 0.0) & (emisiones_hojas_d['zona'] == 'baleares')]
+captura_0_d = captura_d[(captura_d['parche'] == 0.0) & (captura_d['zona'] == 'baleares')]
+
 # Sumar para cada año (por columnas)
 suma_captura = captura_0[años].sum()
 suma_hojas = emisiones_hojas_0[años].sum()
 suma_stock = emisiones_stock_0[años].sum()
+suma_captura_d = captura_0_d[años].sum()
+suma_hojas_d = emisiones_hojas_0_d[años].sum()
 
 # Lista de series y etiquetas
 series = [suma_captura, suma_hojas, suma_stock]
@@ -167,6 +185,10 @@ for i, (serie, ax) in enumerate(zip(series, axs)):
     ax.set_title(titulos[i])
     ax.set_ylabel(labels[i])
     ax.grid(True)
+    if i == 0:
+        ax.plot(años, suma_captura_d, label='Captura de carbono densidad', color='gold')
+    elif i == 1:
+        ax.plot(años, suma_hojas_d, label='Emisión hojas densidad', color='darkgreen')
     ax.legend()
 
 # Ajuste de ticks cada 5 años
@@ -190,15 +212,18 @@ años = [str(año) for año in range(2025, 2100)]
 # Sumar para cada año (por columnas)
 suma_captura = captura[años].sum()
 suma_hojas = emisiones_hojas[años].sum()
+suma_captura_d = captura_d[años].sum()
+suma_hojas_d = emisiones_hojas_d[años].sum()
 suma_stock = emisiones_stock[años].sum()
 # suma_stock.max()
-
 año_max = suma_captura.idxmax()
 valor_max = suma_captura.max()
+
 print(f"El valor máximo de captura es {valor_max:.2f} kg en el año {año_max}")
 
 año_max = suma_stock.idxmax()
 valor_max = suma_stock.max()
+
 print(f"El valor máximo de emision de stock es {valor_max:.2f} kg en el año {año_max}")
 
 # Lista de series y etiquetas
@@ -213,10 +238,13 @@ labels = [
     "Emisión hojas (millones de kg)",
     "Emisión stock (millones de kg)"
 ]
-# %% Crear figuras
+# %%
+# Crear figuras
 fig, axs = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 axs[0].plot(años, suma_captura/ 1e6 , color = 'purple', label = 'Captura sin Densidad')
+axs[0].plot(años, suma_captura_d/ 1e6 , color= 'green', label = 'Captura Con Densidad')
 axs[1].plot(años, suma_hojas/ 1e6, color = 'darkblue', label = 'Emisión Hojas sin Densidad')
+axs[1].plot(años, suma_hojas_d / 1e6, color = 'red', label = 'Emisión Hojas Con Densidad')
 axs[2].plot(años, suma_stock/ 1e6, color = 'gold', label = 'Emisión Stock')
 
 axs[0].set_title(titulos[0])

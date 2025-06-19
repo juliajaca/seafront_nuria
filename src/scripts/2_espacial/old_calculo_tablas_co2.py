@@ -1,16 +1,11 @@
 '''
-Hola Julia,
-
 perdona por el retraso en enviarte estos valores (no tengo los SE de los valores promedio):
 
-- Stock organic carbon top 1st meter sediment (kg OC m-2) (fuente: Leiva et al submitted):
-Avg = 16.82    
+- Stock organic carbon top 1st meter sediment (kg OC m-2) (fuente: Leiva et al submitted): Avg = 16.82    
 
-- Stock carbono en hojas de Posidonia (kg OC m-2) (fuente: Leiva et al submitted):
-Avg = 0.51    
+- Stock carbono en hojas de Posidonia (kg OC m-2) (fuente: Leiva et al submitted): Avg = 0.51    
 
-- Organic carbon sequestration rate (i.e. rate of carbon accumulation in the sediment - este es el carbono orgánico que se acumula a largo plazo) (kg OC m-2 yr-1) (fuente: Leiva et al submitted):
-Avg = 0.03   
+- Organic carbon sequestration rate (i.e. rate of carbon accumulation in the sediment - este es el carbono orgánico que se acumula a largo plazo) (kg OC m-2 yr-1) (fuente: Leiva et al submitted): Avg = 0.03   
 
 Respecto a las emisiones de CO2 al perderse la pradera:
 
@@ -18,7 +13,6 @@ Respecto a las emisiones de CO2 al perderse la pradera:
 
 - otra forma de estimar emisiones, que es la que se está utilizando por falta de estimas reales, es asumir que una vez se muere la pradera se puede erosionar el  carbono orgánico de los primeros 50 cm de sedimento y de este solo se remineraliza el 50 % a una tasa exponencial de 0.18 yr-1 (te paso un artículo en el que utilizan esta aproximación);
 '''
-# %%
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,7 +27,9 @@ años = [str(a) for a in range(2025, 2100)]
 # copia del DataFrame con solo los años
 captura = df[años].copy()
 
-# lógica de captura de carbono--> Si densidad >= 60, entonces captura = 0.03 * m2_punto, si no, 0
+# lógica de captura de carbono
+# Si densidad >= 60, entonces captura = 0.03 * m2_punto, si no, 0
+
 # Multiplicamos por la superficie del punto si cumple la condición
 for año in años:
     captura[año] = np.where(df[año].astype(float) >= 60, 0.03 * df["m2_punto"], 0.0)
@@ -47,89 +43,48 @@ captura["m2_punto"] = df["m2_punto"]
 columnas_ordenadas = ["geometry", "zona", "parche", "m2_punto"] + años
 captura = captura[columnas_ordenadas]
 # %%
-captura.to_csv("_secuestro_carbono.csv", index=False)
-
+# captura.to_csv("_secuestro_carbono.csv", index=False)
+# %%
 """
- _____ _      _  ____  _  ____  _        _     ____     _  ____  ____
-/  __// \__/|/ \/ ___\/ \/  _ \/ \  /|  / \ /|/  _ \   / |/  _ \/ ___\
-|  \  | |\/||| ||    \| || / \|| |\ ||  | |_||| / \|   | || / \||    \
-|  /_ | |  ||| |\___ || || \_/|| | \||  | | ||| \_/|/\_| || |-||\___ |
-\____\\_/  \|\_/\____/\_/\____/\_/  \|  \_/ \|\____/\____/\_/ \|\____/
-
+EEEE M   M III  SSS  III  OOO  N   N     H  H  OOO      J  AA   SSS
+E    MM MM  I  S      I  O   O NN  N     H  H O   O     J A  A S
+EEE  M M M  I   SSS   I  O   O N N N     HHHH O   O     J AAAA  SSS
+E    M   M  I      S  I  O   O N  NN     H  H O   O J   J A  A     S
+EEEE M   M III SSSS  III  OOO  N   N     H  H  OOO   JJJ  A  A SSSS
 """
+# Crear DataFrame vacío para emisiones
+emisiones = pd.DataFrame(0.0, index=df.index, columns=años)
 
-# %% prueba codigo
-# años = [2025,2026,2027,2028]
-# densidad = [100,80,50,20]
-# densidad = [100,100,100,100]
-# superficie = [10]
-# for año in años:
-#     co_año = 0
-#     indice = años.index(año)
-#     # print(f'año {indice}')
-#     for i in range(indice+1):
-#         densidad_año = densidad[indice-i]
-#         print(f'la i vale {i} y la densidad es {densidad_año}')
-#         año_siguiente = i+1
-#         co = densidad_año * (np.exp(-0.1 * i) - np.exp(-0.1 * año_siguiente)) 
-#         print(f'para el año {años[indice]} hay {co} co')
-#         co_año += co
-    
-#     print(f'...el co de ese año es {co_año}')
-#     print('-----')
-# %%
-oc_secuestrado = 0.51 #kilos por m2 y año hasta 60 de densidad
-haces_por_m  = 600
-oc_por_haz = oc_secuestrado/ haces_por_m # 0.00085
-tasa_degradacion = (0.0087 + 0.0066)/2 #0.00765 ROMERO ET AL 92
+for i, row in df.iterrows():
+    m2 = row["m2_punto"]
+    vivo = True if float(row['2025']) >= 60 else False
 
-# Calcular la pérdida de densidad entre años consecutivos (delta)
-años = [str(a) for a in range(2025, 2100)]
-densidad_anterior = df[años[:-1]].values
-densidad_actual = df[años[1:]].values
-delta_densidad = densidad_anterior - densidad_actual  # shape: (n_filas, n_años - 1)
-delta_densidad = np.hstack([np.zeros((delta_densidad.shape[0], 1)), delta_densidad])
+    id_año = 0
+
+    while id_año < len(años)-1 and vivo:
+
+        año = años[id_año]
+        siguiente = años[id_año+1]
+        densidad = float(row[año])  
+
+        if  densidad < 60:
+            # La pradera muere este año, emite el siguiente
+            emisiones.at[i, siguiente] = 0.51 * m2
+            vivo = False  # Solo se emite una vez
+
+        id_año += 1
+
+emisiones["geometry"] = df["geometry"]
+emisiones["zona"] = df["zona"]
+emisiones["parche"] = df["parche"]
+emisiones["m2_punto"] = df["m2_punto"]
+
+columnas_ordenadas = ["geometry", "zona", "parche", "m2_punto"] + años
+emisiones = emisiones[columnas_ordenadas]
 
 # %%
-densidad_array = np.array([[100,80,50,20], [100,100,100,100]])
-densidad_array = delta_densidad
-# Parámetros
-años = list(range(2025, 2100))  # 2025 a 2098
-# años = [2025,2026,2027,2028]
-tasa = tasa_degradacion  # tasa de descomposición anual
+emisiones.to_csv("_emisiones_hojas_carbono.csv", index=False)
 
-# Resultado: misma forma que densidad_array
-carbono_emitido = np.zeros_like(densidad_array,dtype= 'float64')
-
-for año_idx in range(1, len(años)):  # empieza desde 2026
-    año = años[año_idx]
-    co_total = np.zeros(densidad_array.shape[0])  # suma por punto este año
-    # print(co_total)
-    
-    for i in range(año_idx + 1):
-        densidad_cohorte = densidad_array[:, i]
-        print(densidad_cohorte)
-        t = año_idx - i
-        t_siguiente = t + 1
-        co = densidad_cohorte * (np.exp(-tasa * t) - np.exp(-tasa * t_siguiente))
-        co_total += co
-
-    carbono_emitido[:, año_idx] = co_total
-
-m2_total = df["m2_total"].values  # shape (457085,)
-emision_total_array = carbono_emitido * oc_por_haz * m2_total.reshape(-1, 1) * 3.664 #con el reshape es (457085,-1) y ya lo puedo multiplicar, con factor para convertir de C a CO₂
-
-# %%
-# Convertimos a DataFrame
-df_emisiones = pd.DataFrame(emision_total_array, 
-                            columns=list(range(2025, 2100)))
-
-df_emisiones["geometry"] = df["geometry"]
-df_emisiones["zona"] = df["zona"]
-df_emisiones["parche"] = df["parche"]
-df_emisiones["m2_punto"] = df["m2_punto"]
-# %%
-df_emisiones.to_csv("_emisiones_hojas_co2_densidad.csv", index=False)
 """
 EEEE M   M III  SSS  III  OOO  N   N      SSS  TTTTTT  OOO   CCC K  K
 E    MM MM  I  S      I  O   O NN  N     S       TT   O   O C    K K
@@ -138,8 +93,7 @@ E    M   M  I      S  I  O   O N  NN         S   TT   O   O C    K K
 EEEE M   M III SSSS  III  OOO  N   N     SSSS    TT    OOO   CCC K  K
 """
 # %%
-años = [str(a) for a in range(2025, 2100)]
-k = 365*0.0005 #0.1825 (LOVELOCK ET AL 2017)
+k = 0.18
 S = 8.41 * 0.5  # Stock orgánico remineralizable
 # Crear datos dummy
 # datos = {
@@ -174,7 +128,7 @@ t = np.where(t >= 0, t, np.nan)
 # %%
 # Paso 3: aplicar la fórmula 
 decay = S * (np.exp(-k * t) - np.exp(-k * (t + 1)))  # (n, a)
-emisiones = decay * m2  * 3.664 # escalar por superficie (broadcast)
+emisiones = decay * m2  # escalar por superficie (broadcast)
 
 # emisiones_df = pd.DataFrame(emisiones, columns=['2025', '2026', '2027'], index=df.index) # para los datos dummy
 emisiones_df = pd.DataFrame(emisiones, columns=años, index=df.index)
@@ -187,6 +141,6 @@ columnas_ordenadas = ["geometry", "zona", "parche", "m2_punto"] + años
 emisiones_df = emisiones_df[columnas_ordenadas]
 
 # %%
-emisiones_df.to_csv("_emisiones_stock_co2.csv", index=False)
+emisiones_df.to_csv("_emisiones_stock_carbono.csv", index=False)
 
 # %%
